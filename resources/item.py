@@ -1,5 +1,5 @@
 from flask_restful import Resource,reqparse
-from flask_jwt import jwt_required
+from flask_jwt_extended import jwt_required,jwt_optional,get_jwt_identity,fresh_jwt_required
 from models.item import ItemModel
 
 class Item(Resource):
@@ -15,7 +15,7 @@ class Item(Resource):
                         help="Every item needs a store_id."
                         )
 
-	@jwt_required()
+	@jwt_required
 	def get(self,name):
 		item = ItemModel.find_by_name(name)
 		if item:
@@ -23,11 +23,12 @@ class Item(Resource):
 		else:
 			return {'message': 'Item not found'},404
 
+	@fresh_jwt_required
 	def post(self,name):
 		if ItemModel.find_by_name(name): 
 			return {'message':'item with name {} already exists'.format(name)},400
 		data = Item.parser.parse_args()
-		print(data)
+		
 		new_item = ItemModel(name,**data)
 		try:
 			new_item.save_to_db()
@@ -61,6 +62,14 @@ class Item(Resource):
 
 class ItemList(Resource):
 
+	@jwt_optional
 	def get(self):
-		return {'items': [item.json() for item in ItemModel.query.all()]}
-	
+		user_id = get_jwt_identity()
+		items = [item.json() for item in ItemModel.find_all()]
+		if user_id:
+			return { 'items': items},200
+		else:
+			return {
+				'items' : [item['name'] for item in items],
+				'message' : 'You need to login to get more details about items'
+			},200

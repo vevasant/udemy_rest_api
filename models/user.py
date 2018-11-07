@@ -16,14 +16,20 @@ class UserModel(db.Model):
 		db.session.add(self)
 		db.session.commit()
 
+	def delete_from_db(self):
+		db.session.delete(self)
+		db.session.commit()
+
 	@classmethod 
 	def find_by_username(cls,username):
 		return cls.query.filter_by(username=username).first()
 
-
 	@classmethod
 	def find_by_id(cls,_id):
 		return cls.query.filter_by(id=_id).first()
+
+	def json(self):
+		return {'id': self.id, 'username':self.username}
 
 
 
